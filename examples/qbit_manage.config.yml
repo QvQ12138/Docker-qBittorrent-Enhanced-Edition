@@ -1,0 +1,38 @@
+# qbit_manage example config for qBittorrentEE Pro
+# Place this as ./data/qbit_manage/config.yml after first start
+# Docs: https://github.com/StuffAnThings/qbit_manage/wiki
+
+qbt:
+  host: "http://qbittorrentee:8080"
+  user: "admin"
+  pass: "adminadmin"   # change this!
+
+settings:
+  force_auto_tmm: false
+
+# Example: automatic tagging and share limits
+# Uncomment and adjust to your needs
+
+# share_limits:
+#   - group: default
+#     priority: 1
+#     max_ratio: 2
+#     max_seeding_time: 10080   # minutes (7 days)
+#     limit_upload_speed: -1
+#     min_seed_ratio: 1
+#     min_seeding_time: 1440
+
+# cat:
+#   movies: "/data/torrents/movies"
+#   tv: "/data/torrents/tv"
+#   anime: "/data/torrents/anime"
+
+# tags:
+#   noHL:
+#     - "noHL"
+#   cross-seed:
+#     - "cross-seed"
+
+# recycler:
+#   enabled: true
+#   empty_after_x_days: 7
