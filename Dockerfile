@@ -31,12 +31,13 @@ COPY --from=builder /qbittorrent/qbittorrent-nox /usr/local/bin/qbittorrent-nox
 RUN apk add --no-cache python3 curl \
     && rm -rf /var/cache/apk/* \
     && chmod a+x /usr/local/bin/qbittorrent-nox \
-    && chmod a+x /etc/cont-init.d/* \
+    && chmod -R a+x /etc/cont-init.d/ \
     && chmod a+x /etc/services.d/qBittorrent/run \
-    && chmod a+x /usr/local/bin/update-trackers.sh || true
+    && chmod a+x /usr/local/bin/update-trackers.sh
 
 VOLUME /downloads /config
 EXPOSE 8080 6881 6881/udp
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD curl -f http://127.0.0.1:${WEBUIPORT}/api/v2/app/version || exit 1
+# Healthcheck uses default port; override WEBUIPORT if you change it
+HEALTHCHECK --interval=30s --timeout=10s --start-period=50s --retries=3 \
+  CMD curl -fsS http://127.0.0.1:8080/api/v2/app/version || exit 1

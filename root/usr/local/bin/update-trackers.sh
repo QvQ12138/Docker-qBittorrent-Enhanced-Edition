@@ -19,7 +19,7 @@ if ! curl -fsSL --connect-timeout 15 --max-time 30 -o "${TMP_FILE}" "${TRACKER_U
 fi
 
 # Convert to single line with \n separators for qBittorrent conf
-TRACKERS=$(grep -v '^$' "${TMP_FILE}" | sed ':a;N;$!ba;s/\n/\\n/g')
+TRACKERS=$(grep -v '^$' "${TMP_FILE}" | paste -sd '\\n' -)
 
 if [ -z "${TRACKERS}" ]; then
   echo "[trackers] Empty list, skip."
@@ -31,15 +31,16 @@ if [ ! -f "${CONF_FILE}" ]; then
   exit 0
 fi
 
-# Update or add AddTrackersEnabled + AddTrackers
-if grep -q "^Bittorrent\\AddTrackers=" "${CONF_FILE}"; then
-  sed -i "s|^Bittorrent\\AddTrackers=.*|Bittorrent\\AddTrackers=true|" "${CONF_FILE}"
+# Ensure AddTrackers is enabled
+if grep -q "Bittorrent\\AddTrackers=" "${CONF_FILE}"; then
+  sed -i "s|Bittorrent\\AddTrackers=.*|Bittorrent\\AddTrackers=true|" "${CONF_FILE}"
 else
   echo "Bittorrent\\AddTrackers=true" >> "${CONF_FILE}"
 fi
 
-if grep -q "^Session\\AdditionalTrackers=" "${CONF_FILE}"; then
-  sed -i "s|^Session\\AdditionalTrackers=.*|Session\\AdditionalTrackers=${TRACKERS}|" "${CONF_FILE}"
+# Session\\AdditionalTrackers is the key used in recent versions
+if grep -q "Session\\AdditionalTrackers=" "${CONF_FILE}"; then
+  sed -i "s|Session\\AdditionalTrackers=.*|Session\\AdditionalTrackers=${TRACKERS}|" "${CONF_FILE}"
 else
   echo "Session\\AdditionalTrackers=${TRACKERS}" >> "${CONF_FILE}"
 fi
