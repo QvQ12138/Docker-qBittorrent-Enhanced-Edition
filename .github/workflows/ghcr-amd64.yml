@@ -1,4 +1,4 @@
-name: GHCR Build amd64
+name: GHCR Build multi-arch
 
 on:
   workflow_dispatch:
@@ -14,6 +14,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Setup Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -27,14 +30,20 @@ jobs:
       - name: Set Version
         id: v
         run: |
-          VERSION=$(cat ReleaseTag | head -n1)
-          if [ -z "${VERSION}" ]; then echo "::error::ReleaseTag empty"; exit 1; fi
+          VERSION=$(cat ReleaseTag | head -n1 | tr -d '[:space:]')
+          if [ -z "${VERSION}" ]; then
+            echo "::error::ReleaseTag empty"
+            exit 1
+          fi
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
+          context: .
           file: ./Dockerfile
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           push: true
-          tags: ghcr.io/qvq12138/qbittorrentee:${{ steps.v.outputs.version }}
+          tags: |
+            ghcr.io/qvq12138/qbittorrentee:${{ steps.v.outputs.version }}
+            ghcr.io/qvq12138/qbittorrentee:latest
