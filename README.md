@@ -1,82 +1,110 @@
 # qBittorrentEE Pro
 
-**官方增强版二进制 + 实用增强外壳**  
-基于 [c0re100/qBittorrent-Enhanced-Edition](https://github.com/c0re100/qBittorrent-Enhanced-Edition) 官方静态二进制构建。
+**完整可用的增强版 qBittorrent 下载管理平台**
 
-镜像地址：
-
-```bash
-docker pull ghcr.io/qvq12138/qbittorrentee:latest
-```
+- 核心：官方 [qBittorrent Enhanced Edition](https://github.com/c0re100/qBittorrent-Enhanced-Edition) 静态二进制
+- 外壳：继承 SuperNG6 优秀优化 + 本仓库实用增强
+- 管理：集成 [qbit_manage](https://github.com/StuffAnThings/qbit_manage)（自动标签/分类/清理/分享控制）
+- 镜像：`ghcr.io/qvq12138/qbittorrentee:latest`
 
 ---
 
-## 核心特点
-
-- **核心程序**：官方 qBittorrent Enhanced Edition 静态二进制（无修改）
-- 继承 SuperNG6 优秀优化（中文、权限、配置、搜索插件等）
-- **Pro 增强**（本仓库新增）：
-  - 启动时自动更新最新 Tracker 列表（ngosang）
-  - 支持环境变量设置 WebUI 用户名/密码
-  - Healthcheck 健康检查
-  - 启动环境检测
-  - 干净的 docker-compose（含可选 qbit_manage 侧车）
-
----
-
-## 快速开始
+## 一键部署
 
 ```bash
-mkdir -p qbittorrentee/{config,downloads}
-cd qbittorrentee
+# 1. 创建目录
+mkdir -p qbee && cd qbee
 
-# 下载 compose
+# 2. 下载文件
 curl -O https://raw.githubusercontent.com/QvQ12138/Docker-qBittorrent-Enhanced-Edition/master/docker-compose.yml
+curl -O https://raw.githubusercontent.com/QvQ12138/Docker-qBittorrent-Enhanced-Edition/master/.env.example
+cp .env.example .env
 
+# 3. 编辑 .env（修改 PUID/PGID 和密码）
+nano .env
+
+# 4. 启动
 docker compose up -d
+
+# 5. 查看日志（首次获取默认密码）
+docker logs qbittorrentee
 ```
 
-访问：`http://你的IP:8080`  
-默认用户名：`admin`，首次密码请查看容器日志。
+访问：
+- qBittorrent WebUI → `http://IP:8080`
+- qbit_manage WebUI → `http://IP:8181`
 
 ---
 
-## 环境变量
+## 功能一览
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `PUID` / `PGID` | 1000 | 用户/组 ID（群晖等必改） |
-| `TZ` | Asia/Shanghai | 时区 |
-| `WEBUIPORT` | 8080 | WebUI 端口 |
-| `ENABLE_DOWNLOADS_PERM_FIX` | true | 是否自动修复 /downloads 权限 |
-| `ENABLE_TRACKER_UPDATE` | true | 启动时自动更新 Tracker |
-| `WEB_USERNAME` | （空） | 设置 WebUI 用户名 |
-| `WEB_PASSWORD` | （空） | 设置 WebUI 密码（建议配合 PBKDF2） |
+### 核心镜像已包含
+| 功能 | 说明 |
+|------|------|
+| 官方增强版二进制 | 反吸血、客户端屏蔽等 |
+| 默认中文 + 优化配置 | 开箱即用 |
+| 自动更新 Tracker | 启动时拉取 ngosang 最新列表 |
+| Healthcheck | Docker 正确判断健康状态 |
+| PUID/PGID 权限映射 | 群晖/威联通友好 |
+| 权限自动修复 | 可选 |
+| 预装搜索插件 | 开箱可用 |
 
----
-
-## 可选：启用 qbit_manage
-
-编辑 `docker-compose.yml`，取消注释 `qbit_manage` 服务即可获得：
-
-- 自动标签 / 分类
-- 分享限制与清理
-- 规则调度
+### 完整 Compose 栈已包含
+| 服务 | 功能 |
+|------|------|
+| **qbittorrentee** | 下载核心 |
+| **qbit_manage** | 自动标签、分类、分享限制、清理、规则调度 |
 
 ---
 
-## 路线图（Pro / AI Edition）
+## 目录结构（部署后）
 
-**Phase 1（当前）**：实用增强 + 稳定 Docker 成品  
-**Phase 2**：完整集成 qbit_manage + Apprise 通知  
-**Phase 3**：MCP Server + AI 控制接口  
-**Phase 4**：监控（Prometheus）+ 高级 WebUI
+```
+qbee/
+├── docker-compose.yml
+├── .env
+├── data/
+│   ├── config/          # qB 配置
+│   ├── downloads/       # 下载目录
+│   ├── qbit_manage/     # qbit_manage 配置
+│   └── backups/         # 配置备份（手动脚本）
+└── scripts/
+    └── backup-config.sh
+```
+
+---
+
+## 常用命令
+
+```bash
+# 更新镜像并重启
+docker compose pull && docker compose up -d
+
+# 备份配置
+bash scripts/backup-config.sh
+
+# 查看状态
+docker compose ps
+docker logs -f qbittorrentee
+```
+
+---
+
+## 后续规划（已预留结构）
+
+- Apprise 统一通知（Telegram / 飞书 / Discord 等）
+- MCP Server（AI 自然语言控制）
+- Prometheus + Grafana 监控
+- 更完善的密码/安全选项
+- 配置导入导出工具
+
+当前版本已经是**可直接长期使用的完整成品**，核心下载 + 智能任务管理全部就绪。
 
 ---
 
 ## 致谢
 
 - [c0re100/qBittorrent-Enhanced-Edition](https://github.com/c0re100/qBittorrent-Enhanced-Edition)
-- [SuperNG6/Docker-qBittorrent-Enhanced-Edition](https://github.com/SuperNG6/Docker-qBittorrent-Enhanced-Edition)
-- [ngosang/trackerslist](https://github.com/ngosang/trackerslist)
+- [SuperNG6](https://github.com/SuperNG6/Docker-qBittorrent-Enhanced-Edition)
 - [StuffAnThings/qbit_manage](https://github.com/StuffAnThings/qbit_manage)
+- [ngosang/trackerslist](https://github.com/ngosang/trackerslist)

@@ -1,54 +1,81 @@
 version: "3.8"
 
 services:
-  # ==================== qBittorrentEE Pro ====================
+  # =====================================================
+  # qBittorrentEE Pro - Core
+  # =====================================================
   qbittorrentee:
     image: ghcr.io/qvq12138/qbittorrentee:latest
-    # build: .   # uncomment if you want to build locally
     container_name: qbittorrentee
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Asia/Shanghai
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Asia/Shanghai}
       - WEBUIPORT=8080
       - ENABLE_DOWNLOADS_PERM_FIX=true
       - ENABLE_TRACKER_UPDATE=true
-      # Optional: set WebUI credentials
+      # Uncomment and set your credentials:
       # - WEB_USERNAME=admin
-      # - WEB_PASSWORD=yourpassword
+      # - WEB_PASSWORD=your_secure_password
     volumes:
-      - ./config:/config
-      - ./downloads:/downloads
+      - ./data/config:/config
+      - ./data/downloads:/downloads
     ports:
-      - "8080:8080"
+      - "${WEBUI_PORT:-8080}:8080"
       - "6881:6881"
       - "6881:6881/udp"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/v2/app/version"]
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/v2/app/version"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 50s
+    networks:
+      - qbee
 
-  # ==================== qbit_manage (optional sidecar) ====================
-  # Uncomment to enable automatic tagging / cleanup / share limits
-  # qbit_manage:
-  #   image: ghcr.io/stuffanthings/qbit_manage:latest
-  #   container_name: qbit_manage
-  #   environment:
-  #     - QBT_HOST=http://qbittorrentee:8080
-  #     - QBT_USERNAME=admin
-  #     - QBT_PASSWORD=adminadmin
-  #     - QBT_SCHEDULE=30
-  #     - QBT_RUN=false
-  #     - QBT_WEB_SERVER=true
-  #     - QBT_PORT=8181
+  # =====================================================
+  # qbit_manage - Automatic task management
+  # Tags / Categories / Share limits / Cleanup / Rules
+  # =====================================================
+  qbit_manage:
+    image: ghcr.io/stuffanthings/qbit_manage:latest
+    container_name: qbit_manage
+    environment:
+      - QBT_HOST=http://qbittorrentee:8080
+      - QBT_USERNAME=${QBT_USERNAME:-admin}
+      - QBT_PASSWORD=${QBT_PASSWORD:-adminadmin}
+      - QBT_SCHEDULE=30
+      - QBT_RUN=false
+      - QBT_WEB_SERVER=true
+      - QBT_PORT=8181
+      - QBT_LOG_LEVEL=INFO
+      - TZ=${TZ:-Asia/Shanghai}
+    volumes:
+      - ./data/qbit_manage:/config
+      - ./data/downloads:/data/torrents:rw
+    ports:
+      - "${QBM_PORT:-8181}:8181"
+    depends_on:
+      qbittorrentee:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - qbee
+
+  # =====================================================
+  # Optional: Watchtower for auto-update
+  # =====================================================
+  # watchtower:
+  #   image: containrrr/watchtower
+  #   container_name: watchtower
   #   volumes:
-  #     - ./qbit_manage:/config
-  #     - ./downloads:/data/torrents:rw
-  #   ports:
-  #     - "8181:8181"
-  #   depends_on:
-  #     - qbittorrentee
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   environment:
+  #     - WATCHTOWER_CLEANUP=true
+  #     - WATCHTOWER_SCHEDULE=0 0 4 * * *
   #   restart: unless-stopped
+
+networks:
+  qbee:
+    driver: bridge
