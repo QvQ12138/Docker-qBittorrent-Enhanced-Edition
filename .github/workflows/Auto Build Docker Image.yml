@@ -29,10 +29,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Docker Hub is optional. Only runs when both secrets are present.
+      - name: Check Docker Hub secrets
+        id: dockerhub
+        run: |
+          if [ -n "${{ secrets.DOCKERHUB_USERNAME }}" ] && [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "Docker Hub secrets not set, skipping Docker Hub login/push"
+          fi
+
       - name: Login to Docker Hub (optional)
-        id: dockerhub-login
-        if: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+        if: steps.dockerhub.outputs.enabled == 'true'
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -64,6 +72,32 @@ jobs:
           echo "${{ steps.set-version.outputs.version }}" > ./tag/tag-${{ steps.set-version.outputs.version }}
           echo "status=success" >> "${GITHUB_OUTPUT}"
 
+      - name: Generate image tags
+        id: tags
+        if: steps.get-release-tag.outputs.status == 'success'
+        run: |
+          VERSION="${{ steps.set-version.outputs.version }}"
+          TAGS="ghcr.io/qvq12138/qbittorrentee:${VERSION}"
+          TAGS="${TAGS}"$'
+'"ghcr.io/qvq12138/qbittorrentee:latest"
+
+          if [ "${{ steps.dockerhub.outputs.enabled }}" = "true" ]; then
+            TAGS="${TAGS}"$'
+'"superng6/qbittorrentee:${VERSION}"
+            TAGS="${TAGS}"$'
+'"superng6/qbittorrentee:latest"
+          fi
+
+          # multiline output
+          {
+            echo "list<<EOF"
+            echo "$TAGS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "Generated tags:"
+          echo "$TAGS"
+
       - name: Build and push
         if: steps.get-release-tag.outputs.status == 'success'
         uses: docker/build-push-action@v6
@@ -72,9 +106,4 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: |
-            ghcr.io/qvq12138/qbittorrentee:${{ steps.set-version.outputs.version }}
-            ghcr.io/qvq12138/qbittorrentee:latest
-            ${{ steps.dockerhub-login.outcome == 'success' && format('superng6/qbittorrentee:{0}', steps.set-version.outputs.version) || '' }}
-            ${{ steps.dockerhub-login.outcome == 'success' && 'superng6/qbittorrentee:latest' || '' }}
-          # Note: empty lines from the conditional tags are ignored by build-push-action
+          tags: ${{ steps.tags.outputs.list }}
