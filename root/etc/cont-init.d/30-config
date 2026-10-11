@@ -1,22 +1,63 @@
 #!/usr/bin/with-contenv bash
 
-# 检查config配置文件，并创建
+# Create config if not exists
 if [ ! -e "/config/qBittorrent/config/qBittorrent.conf" ]; then
     mkdir -p /config/qBittorrent/config/
     cp /usr/local/qbittorrent/defaults/qBittorrent.conf /config/qBittorrent/config/qBittorrent.conf
 fi
 
-# 检查Search文件，并创建.
+# Search plugins
 if [ ! -d "/config/qBittorrent/data/nova3/engines" ]; then
     mkdir -p /config/qBittorrent/data/nova3/engines
 fi
-cp -ru /usr/local/qbittorrent/defaults/Search/* /config/qBittorrent/data/nova3/engines
+cp -ru /usr/local/qbittorrent/defaults/Search/* /config/qBittorrent/data/nova3/engines/ 2>/dev/null || true
 
-# permissions
+# Apply WebUI username/password from env if provided
+CONF="/config/qBittorrent/config/qBittorrent.conf"
+
+if [ -n "${WEB_USERNAME}" ]; then
+  if grep -q "^WebUI\\Username=" "${CONF}"; then
+    sed -i "s|^WebUI\\Username=.*|WebUI\\Username=${WEB_USERNAME}|" "${CONF}"
+  else
+    echo "WebUI\\Username=${WEB_USERNAME}" >> "${CONF}"
+  fi
+  echo "[config] WebUI username set from env"
+fi
+
+if [ -n "${WEB_PASSWORD}" ]; then
+  # qBittorrent stores password as PBKDF2, plain text is accepted on first set via API
+  # For simplicity we set a temporary and let user change, or use WEB_PBKDF2 if provided
+  if [ -n "${WEB_PBKDF2_PASSWORD}" ]; then
+    if grep -q "^WebUI\\Password_PBKDF2=" "${CONF}"; then
+      sed -i "s|^WebUI\\Password_PBKDF2=.*|WebUI\\Password_PBKDF2=${WEB_PBKDF2_PASSWORD}|" "${CONF}"
+    else
+      echo "WebUI\\Password_PBKDF2=${WEB_PBKDF2_PASSWORD}" >> "${CONF}"
+    fi
+  else
+    echo "[config] WEB_PASSWORD set. For security, prefer generating PBKDF2 hash."
+    # Note: plain password injection is limited; recommend setting via WebUI first time
+  fi
+fi
+
+# Permissions
 chown -R abc:abc /config
 
-# 判断是否需要开启对 /downloads 文件夹进行权限修复操作
-if [ "$ENABLE_DOWNLOADS_PERM_FIX" = "true" ]; then
-    # 修改权限
-    chown -R abc:abc /downloads
+if [ "${ENABLE_DOWNLOADS_PERM_FIX}" = "true" ]; then
+    chown -R abc:abc /downloads 2>/dev/null || true
 fi
+
+# Startup checks
+echo "[check] Checking environment..."
+if [ ! -d "/downloads" ]; then
+  echo "[check] WARNING: /downloads not mounted"
+fi
+if [ ! -d "/config" ]; then
+  echo "[check] WARNING: /config not mounted"
+fi
+
+# Update trackers
+if [ -x /usr/local/bin/update-trackers.sh ]; then
+  /usr/local/bin/update-trackers.sh || true
+fi
+
+echo "[check] Environment ready."

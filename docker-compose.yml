@@ -1,19 +1,54 @@
-version: "3"
+version: "3.8"
+
 services:
+  # ==================== qBittorrentEE Pro ====================
   qbittorrentee:
-    image: superng6/qbittorrentee
+    image: ghcr.io/qvq12138/qbittorrentee:latest
+    # build: .   # uncomment if you want to build locally
     container_name: qbittorrentee
     environment:
-      - PUID=1026
-      - PGID=100
+      - PUID=1000
+      - PGID=1000
       - TZ=Asia/Shanghai
       - WEBUIPORT=8080
       - ENABLE_DOWNLOADS_PERM_FIX=true
+      - ENABLE_TRACKER_UPDATE=true
+      # Optional: set WebUI credentials
+      # - WEB_USERNAME=admin
+      # - WEB_PASSWORD=yourpassword
     volumes:
-      - ./qbittorrentee/config:/config
-      - ./qbittorrentee/downloads:/downloads
+      - ./config:/config
+      - ./downloads:/downloads
     ports:
-      - 6881:6881
-      - 6881:6881/udp
-      - 8080:8080
+      - "8080:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8080/api/v2/app/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ==================== qbit_manage (optional sidecar) ====================
+  # Uncomment to enable automatic tagging / cleanup / share limits
+  # qbit_manage:
+  #   image: ghcr.io/stuffanthings/qbit_manage:latest
+  #   container_name: qbit_manage
+  #   environment:
+  #     - QBT_HOST=http://qbittorrentee:8080
+  #     - QBT_USERNAME=admin
+  #     - QBT_PASSWORD=adminadmin
+  #     - QBT_SCHEDULE=30
+  #     - QBT_RUN=false
+  #     - QBT_WEB_SERVER=true
+  #     - QBT_PORT=8181
+  #   volumes:
+  #     - ./qbit_manage:/config
+  #     - ./downloads:/data/torrents:rw
+  #   ports:
+  #     - "8181:8181"
+  #   depends_on:
+  #     - qbittorrentee
+  #   restart: unless-stopped
