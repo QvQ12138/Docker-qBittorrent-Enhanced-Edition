@@ -1,9 +1,12 @@
 version: "3.8"
 
+###########################################################
+# qBittorrentEE Pro - Complete Platform
+# Core + Task Manager + Notification
+###########################################################
+
 services:
-  # =====================================================
-  # qBittorrentEE Pro - Core
-  # =====================================================
+  # -------------------- Core --------------------
   qbittorrentee:
     image: ghcr.io/qvq12138/qbittorrentee:latest
     container_name: qbittorrentee
@@ -14,9 +17,6 @@ services:
       - WEBUIPORT=8080
       - ENABLE_DOWNLOADS_PERM_FIX=true
       - ENABLE_TRACKER_UPDATE=true
-      # Uncomment and set your credentials:
-      # - WEB_USERNAME=admin
-      # - WEB_PASSWORD=your_secure_password
     volumes:
       - ./data/config:/config
       - ./data/downloads:/downloads
@@ -34,10 +34,7 @@ services:
     networks:
       - qbee
 
-  # =====================================================
-  # qbit_manage - Automatic task management
-  # Tags / Categories / Share limits / Cleanup / Rules
-  # =====================================================
+  # -------------------- Task Manager --------------------
   qbit_manage:
     image: ghcr.io/stuffanthings/qbit_manage:latest
     container_name: qbit_manage
@@ -63,18 +60,20 @@ services:
     networks:
       - qbee
 
-  # =====================================================
-  # Optional: Watchtower for auto-update
-  # =====================================================
-  # watchtower:
-  #   image: containrrr/watchtower
-  #   container_name: watchtower
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock
-  #   environment:
-  #     - WATCHTOWER_CLEANUP=true
-  #     - WATCHTOWER_SCHEDULE=0 0 4 * * *
-  #   restart: unless-stopped
+  # -------------------- Notification (Apprise) --------------------
+  # Configure APPRISE_URLS in .env (telegram://, discord://, mailto://, bark:// etc.)
+  apprise:
+    image: caronc/apprise:latest
+    container_name: qbee-apprise
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+    volumes:
+      - ./data/apprise:/config
+    restart: unless-stopped
+    networks:
+      - qbee
+    profiles:
+      - notify   # start only when you need it: docker compose --profile notify up -d
 
 networks:
   qbee:

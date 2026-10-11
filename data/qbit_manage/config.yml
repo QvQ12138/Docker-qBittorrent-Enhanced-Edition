@@ -1,0 +1,36 @@
+# qBittorrentEE Pro - qbit_manage default config
+# Docs: https://github.com/StuffAnThings/qbit_manage/wiki
+
+qbt:
+  host: "http://qbittorrentee:8080"
+  user: "admin"
+  pass: "adminadmin"
+
+settings:
+  force_auto_tmm: false
+  tracker_error_tag: "issue"
+  nohardlinks_tag: "noHL"
+
+# Share limits example - adjust to your preference
+share_limits:
+  - group: default
+    priority: 1
+    max_ratio: 3
+    max_seeding_time: 20160          # 14 days
+    limit_upload_speed: -1
+    min_seeding_time: 1440           # 1 day minimum
+    cleanup: true
+
+# Categories (paths relative to /data/torrents)
+cat:
+  movies: "/data/torrents/movies"
+  tv: "/data/torrents/tv"
+  anime: "/data/torrents/anime"
+  music: "/data/torrents/music"
+  other: "/data/torrents/other"
+
+# Recycle bin
+recycler:
+  enabled: true
+  empty_after_x_days: 7
+  save_torrents: true
